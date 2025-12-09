@@ -9,16 +9,23 @@ from openbb import obb
 
 from config import Config
 
+# --- 修复后的代理设置逻辑 ---
 if not Config.IS_GITHUB:
+    # 🌍 本地模式：必须设置字符串
     os.environ["HTTP_PROXY"] = Config.LOCAL_PROXY
     os.environ["HTTPS_PROXY"] = Config.LOCAL_PROXY
-    print(f"🌍 [本地模式] 已开启 Gemini 代理: {Config.LOCAL_PROXY}")
+    PROXY_URL = Config.LOCAL_PROXY
+    print(f"🌍 [本地模式] 已开启代理: {Config.LOCAL_PROXY}")
 else:
-    os.environ["HTTP_PROXY"] = None
-    PROXY_URL = os.environ["HTTP_PROXY"] 
+    # ☁️ GitHub 模式：
+    # 1. 绝对不要给 os.environ 赋值 None！
+    # 2. 如果担心有残留，可以用 pop 安全移除 (虽然 GitHub 环境本身就是干净的)
+    os.environ.pop("HTTP_PROXY", None)
+    os.environ.pop("HTTPS_PROXY", None)
+    # 3. 内部变量设为 None 是可以的 (用于 requests proxies 参数)
+    PROXY_URL = None
     print("☁️ [GitHub 模式] 直连 Google，不使用代理")
 
-PROXY_URL = os.environ["HTTP_PROXY"]
 # 屏蔽警告
 warnings.filterwarnings("ignore")
 
