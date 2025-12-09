@@ -14,6 +14,7 @@ if not Config.IS_GITHUB:
     os.environ["HTTPS_PROXY"] = Config.LOCAL_PROXY
     print(f"🌍 [本地模式] 已开启 Gemini 代理: {Config.LOCAL_PROXY}")
 else:
+    PROXY_URL = None
     print("☁️ [GitHub 模式] 直连 Google，不使用代理")
 
 PROXY_URL = os.environ["HTTP_PROXY"]
