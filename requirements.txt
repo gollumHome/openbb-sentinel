@@ -1,0 +1,7 @@
+openbb
+pandas
+requests
+yfinance>=0.2.40
+google-generativeai
+beautifulsoup4
+lxml
