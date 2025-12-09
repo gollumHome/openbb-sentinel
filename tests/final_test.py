@@ -2,7 +2,7 @@ import os
 import google.generativeai as genai
 
 # 1. 填入从 https://aistudio.google.com 申请的新 Key
-os.environ["GOOGLE_API_KEY"] = "AIzaSyCikrT9Pos11Bq1rE5e0OAuolMiN7LLdrM"
+os.environ["GOOGLE_API_KEY"] = ""
 
 # 2. 填入你的代理 (确保不是香港节点)
 os.environ["HTTP_PROXY"] = "http://127.0.0.1:10809"  # <--- 注意端口号
