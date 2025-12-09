@@ -101,11 +101,11 @@ def main():
 
             # Step C: 推送消息
             # 组装 Markdown
-            markdown_msg = format_wechat_message(ticker, args.mode, insight)
+            raw_insight = format_wechat_message(ticker, args.mode, insight)
 
             # 发送
             print(f"📨 正在推送 {ticker} 分析报告...")
-            notifier.send_markdown(markdown_msg)
+            notifier.send(raw_insight, msg_type="text")
 
         except Exception as e:
             print(f"💥 处理 {ticker} 时发生意外错误: {e}")
