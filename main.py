@@ -1,14 +1,13 @@
 import argparse
-import sys
-from datetime import datetime
 from openbb import obb
 
-# 导入自定义模块
+
 from config import Config
 from data_engine import DataEngine
 from ai_brain import AIBrain
-from notifier import WeChatNotifier  # <--- ✅ 替换为企业微信
-
+from notifier import WeChatNotifier
+from datetime import datetime
+import pytz
 
 def setup_credentials():
     """统一配置所有数据源凭证"""
@@ -33,11 +32,15 @@ def setup_credentials():
         print("⚠️ 未检测到 API Key，系统将主要使用 Yahoo Finance 免费数据。")
 
 
+
 def format_wechat_message(ticker, mode, insight):
     """
     将 AI 的回复包装成企业微信漂亮的 Markdown 格式
     """
-    current_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+    # --- 2. 这里修改为北京时间 ---
+    tz = pytz.timezone('Asia/Shanghai')
+    current_time = datetime.now(tz).strftime("%Y-%m-%d %H:%M")
+    # ---------------------------
 
     if mode == "pre":
         title = f"☀️ 盘前策略: {ticker}"
@@ -51,7 +54,7 @@ def format_wechat_message(ticker, mode, insight):
     # <font color="info">...</font> 是企业微信特有的语法
     msg = f"""
 # {title}
-<font color="comment">{current_time}</font>
+<font color="comment">{current_time} (北京时间)</font>
 
 {insight}
 
