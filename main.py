@@ -8,6 +8,7 @@ from ai_brain import AIBrain
 from notifier import WeChatNotifier
 from datetime import datetime
 import pytz
+import time
 
 def setup_credentials():
     """统一配置所有数据源凭证"""
@@ -109,6 +110,8 @@ def main():
             # 发送
             print(f"📨 正在推送 {ticker} 分析报告...")
             notifier.send(raw_insight, msg_type="text")
+            print(f"☕ {ticker} 分析完成，休息 20 秒避免限流...")
+            time.sleep(20)
 
         except Exception as e:
             print(f"💥 处理 {ticker} 时发生意外错误: {e}")
