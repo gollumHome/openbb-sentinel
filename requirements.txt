@@ -1,4 +1,4 @@
-openbb
+openbb[all]
 pandas
 requests
 yfinance>=0.2.40

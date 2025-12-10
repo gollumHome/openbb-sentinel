@@ -1,5 +1,8 @@
 # ai_brain.py
-import google.generativeai as genai  # <--- ✅ 必须加上 google. 前缀
+from asyncio import exceptions
+
+import google.generativeai as genai
+from google.api_core import exceptions
 from config import Config
 import os
 
@@ -28,7 +31,7 @@ class AIBrain:
             "temperature": 0.3,
             "top_p": 0.95,
             "top_k": 64,
-            "max_output_tokens": 8192,
+            "max_output_tokens": 5120,
         }
 
         self.model_name = Config.GEMINI_MODEL
@@ -159,22 +162,39 @@ class AIBrain:
             HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
         }
 
-        try:
-            model = genai.GenerativeModel(
-                model_name=self.model_name,
-                generation_config=self.generation_config,
-                system_instruction=system_instruction
-            )
-            response = model.generate_content(user_prompt, safety_settings=safety_settings)
+        # --- ✨ 5. 核心修改：增加重试机制 ---
+        max_retries = 3  # 最大重试次数
+        retry_delay = 30  # 每次等待秒数 (针对 Pro 模型建议设为 30s 以上)
 
-            if response.candidates and response.candidates[0].content.parts:
-                final_text = response.text
-                if response.candidates[0].finish_reason.name == "MAX_TOKENS":
-                    final_text += "\n[⚠️ 截断]"
-                return final_text
-            else:
-                return "AI 未生成有效内容"
+        for attempt in range(max_retries):
+            try:
+                model = genai.GenerativeModel(
+                    model_name=self.model_name,
+                    generation_config=self.generation_config,
+                    system_instruction=system_instruction
+                )
 
-        except Exception as e:
-            print(f"❌ Gemini 调用报错: {e}")
-            return "AI 服务不可用"
+                # 发送请求
+                response = model.generate_content(user_prompt, safety_settings=safety_settings)
+
+                if response.candidates and response.candidates[0].content.parts:
+                    final_text = response.text
+                    if response.candidates[0].finish_reason.name == "MAX_TOKENS":
+                        final_text += "\n[⚠️ 截断]"
+                    return final_text
+                else:
+                    return "AI 未生成有效内容 (内容为空)"
+
+            except exceptions.ResourceExhausted:
+                # 🛑 专门捕捉 429 限流错误
+                print(
+                    f"⏳ [限流警告] 触发 Gemini 速率限制，正在休眠 {retry_delay} 秒后重试 ({attempt + 1}/{max_retries})...")
+                import time
+                time.sleep(retry_delay)  # 强制休息
+
+            except Exception as e:
+                # 其他错误（如网络断开、参数错误）
+                print(f"❌ Gemini 调用报错: {e}")
+                return f"AI 服务不可用: {str(e)}"
+
+        return "❌ 超过最大重试次数，分析失败"
