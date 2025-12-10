@@ -11,6 +11,7 @@ class Config:
     FMP_KEY = os.getenv("FMP_API_KEY")
     TIINGO_KEY = os.getenv("TIINGO_API_KEY")
     WATCHLIST = ["NVDA","AAPL", "MSFT", "GOOG", "AMZN", "META","TSLA","PLTR","MSTR"]
+
     # 1. RSI (相对强弱指数) 阈值
     # RSI 范围是 0-100。
     RSI_OVERBOUGHT = 70  # 【超买线】: 当 RSI > 70，说明短期买盘太强，价格可能"虚高"，随时可能回调（卖出/风险信号）。
