@@ -104,7 +104,6 @@ def main():
             insight = brain.analyze(data, mode=args.mode)
 
             # Step C: 推送消息
-            # 组装 Markdown
             raw_insight = format_wechat_message(ticker, args.mode, insight)
 
             # 发送

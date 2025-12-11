@@ -57,7 +57,7 @@ class AIBrain:
         # 止损
         stop_loss = round(data['quote']['price'] - Config.ATR_MULTIPLIER * data['technicals']['atr'], 2)
 
-        # 新闻与基本面 (之前漏掉的！)
+        # 新闻与基本面
         news_text = data.get('news', '暂无重大新闻')
         target_price = data.get('fundamental', 'N/A')
 
@@ -106,7 +106,7 @@ class AIBrain:
 
             请严格按以下结构输出（中文）：
 
-            1. 📰 **消息面解读** (最重要)：
+            1. 📰 **消息面解读** ：
                - {news_text}
                - 这条新闻对股价是直接利好、利空，还是噪音？(如果无新闻，请注明"无催化剂，跟随大盘")
 

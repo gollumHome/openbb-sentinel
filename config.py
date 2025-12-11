@@ -27,8 +27,8 @@ class Config:
 
     # Google Gemini 配置
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    # 推荐使用 gemini-1.5-flash，速度快且免费额度高
-    GEMINI_MODEL = "gemini-2.5-flash"
+
+    GEMINI_MODEL = "gemini-flash-lite-latest"
 
     # 3. 🔥 关键：判断是否在 GitHub Actions 环境运行
     # GitHub 运行时会自动设置这个变量为 "true"
