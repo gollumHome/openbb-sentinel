@@ -164,7 +164,7 @@ class AIBrain:
 
         # --- ✨ 5. 核心修改：增加重试机制 ---
         max_retries = 3  # 最大重试次数
-        retry_delay = 30  # 每次等待秒数 (针对 Pro 模型建议设为 30s 以上)
+        retry_delay = 60  # 每次等待秒数 (针对 Pro 模型建议设为 60s 以上)
 
         for attempt in range(max_retries):
             try:
@@ -173,10 +173,8 @@ class AIBrain:
                     generation_config=self.generation_config,
                     system_instruction=system_instruction
                 )
-
                 # 发送请求
                 response = model.generate_content(user_prompt, safety_settings=safety_settings)
-
                 if response.candidates and response.candidates[0].content.parts:
                     final_text = response.text
                     if response.candidates[0].finish_reason.name == "MAX_TOKENS":
@@ -184,17 +182,32 @@ class AIBrain:
                     return final_text
                 else:
                     return "AI 未生成有效内容 (内容为空)"
-
-            except exceptions.ResourceExhausted:
-                # 🛑 专门捕捉 429 限流错误
-                print(
-                    f"⏳ [限流警告] 触发 Gemini 速率限制，正在休眠 {retry_delay} 秒后重试 ({attempt + 1}/{max_retries})...")
-                import time
-                time.sleep(retry_delay)  # 强制休息
-
             except Exception as e:
-                # 其他错误（如网络断开、参数错误）
-                print(f"❌ Gemini 调用报错: {e}")
-                return f"AI 服务不可用: {str(e)}"
-
+                # 🔍 统一异常分析逻辑
+                error_str = str(e)
+                # 判断是否为限流 (429) 或 配额不足 (ResourceExhausted)
+                # Google SDK 有时会抛出 exceptions.ResourceExhausted，有时直接是 429 状态码
+                is_rate_limit = (
+                        "429" in error_str or
+                        "ResourceExhausted" in error_str or
+                        "Quota exceeded" in error_str or
+                        isinstance(e, exceptions.ResourceExhausted)
+                )
+                if is_rate_limit:
+                    import time
+                    if attempt < max_retries - 1:
+                        # 动态计算等待时间：尝试次数越多，等待越久 (30s, 60s, 90s...)
+                        wait_time = retry_delay * (attempt + 1)
+                        print(
+                            f"⏳ [限流警告] 触发 Gemini 速率限制 (429)，正在休眠 {wait_time} 秒后重试 ({attempt + 1}/{max_retries})...")
+                        print(f"   (错误信息: {error_str[:100]}...)")
+                        time.sleep(wait_time)
+                        continue  # 跳过本次循环，进入下一次尝试
+                    else:
+                        print(f"❌ [最终失败] 重试 {max_retries} 次后依然限流。")
+                        return "❌ 分析失败: 触发 API 速率限制 (429)"
+                else:
+                    # 其他非限流错误（如网络断开、Prompt过长等），直接报错不重试
+                    print(f"❌ Gemini 调用报错 (非限流): {e}")
+                    return f"AI 服务不可用: {str(e)}"
         return "❌ 超过最大重试次数，分析失败"

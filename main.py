@@ -109,8 +109,8 @@ def main():
             # 发送
             print(f"📨 正在推送 {ticker} 分析报告...")
             notifier.send(raw_insight, msg_type="text")
-            print(f"☕ {ticker} 分析完成，休息 20 秒避免限流...")
-            time.sleep(20)
+            print(f"☕ {ticker} 分析完成，休息 80 秒避免限流...")
+            time.sleep(80)
 
         except Exception as e:
             print(f"💥 处理 {ticker} 时发生意外错误: {e}")
