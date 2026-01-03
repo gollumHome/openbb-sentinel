@@ -10,7 +10,7 @@ class Config:
     WECHAT_WEBHOOK_URL = os.getenv("WECHAT_WEBHOOK_URL")
     FMP_KEY = os.getenv("FMP_API_KEY")
     TIINGO_KEY = os.getenv("TIINGO_API_KEY")
-    WATCHLIST = ["NVDA","AAPL", "MSFT", "GOOG", "AMZN", "META","TSLA","PLTR","MSTR"]
+    WATCHLIST = ["NVDA","AAPL", "MSFT", "GOOG", "TSLA","PLTR","MSTR"]
 
     # 1. RSI (相对强弱指数) 阈值
     # RSI 范围是 0-100。
