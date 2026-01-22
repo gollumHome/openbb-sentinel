@@ -80,42 +80,65 @@ def main():
     # 3. 实例化模块
     engine = DataEngine()
     brain = AIBrain()
-    notifier = WeChatNotifier()  # 读取 Config 中的 Webhook
+    notifier = WeChatNotifier()
 
     # 4. 遍历股票池
     if not Config.WATCHLIST:
-        print("⚠️ 警告: Config.WATCHLIST 为空，请先添加关注的股票代码。")
+        print("⚠️ 警告: Config.WATCHLIST 为空。")
         return
+
+    all_insights = []  # 用于存储所有股票的分析结果
 
     for ticker in Config.WATCHLIST:
         print(f"\n🔍 正在处理: {ticker} ...")
-
         try:
             # Step A: 获取数据
             data = engine.get_full_context(ticker)
-
-            # 如果数据获取失败（比如停牌或代码错误），跳过
             if not data:
-                print(f"❌ 跳过 {ticker}: 数据获取不完整")
                 continue
 
             # Step B: AI 分析
-            # 这里调用我们在 ai_brain.py 里写好的 analyze
             insight = brain.analyze(data, mode=args.mode)
 
-            # Step C: 推送消息
-            raw_insight = format_wechat_message(ticker, args.mode, insight)
+            # Step C: 格式化单条消息并存入列表
+            # 注意：这里只负责生成单个标的文本，不直接发送
+            formatted_insight = format_wechat_message(ticker, args.mode, insight)
+            all_insights.append(formatted_insight)
 
-            # 发送
-            print(f"📨 正在推送 {ticker} 分析报告...")
-            notifier.send(raw_insight, msg_type="text")
-            print(f"☕ {ticker} 分析完成，休息 80 秒避免限流...")
-            time.sleep(80)
+            print(f"✅ {ticker} 分析完成并已暂存。")
+
+            # 为了规避 Gemini/数据源 频率限制，依然保留 sleep，但不在此时发消息
+            if ticker != Config.WATCHLIST[-1]:  # 最后一个标的后不需要等
+                print(f"☕ 休息 60 秒避免 API 限流...")
+                time.sleep(60)
 
         except Exception as e:
             print(f"💥 处理 {ticker} 时发生意外错误: {e}")
-            # 继续处理下一个股票，不要因为一个报错就停止整个脚本
             continue
+
+    # 5. 分批汇总推送
+    if not all_insights:
+        print("望天... 没有生成任何有效分析。")
+        return
+
+    print(f"\n📨 正在合并推送 {len(all_insights)} 个标的的分析报告...")
+
+    # 设定每批发送的数量（建议 3 个标的一发，防止内容过长被微信截断）
+    batch_size = 3
+    for i in range(0, len(all_insights), batch_size):
+        batch = all_insights[i: i + batch_size]
+
+        # 合并文本，中间加个分割线
+        separator = "\n" + "·" * 30 + "\n"
+        combined_message = f"【{args.mode.upper()} 汇总报告 ({i // batch_size + 1})】\n"
+        combined_message += separator.join(batch)
+
+        # 发送
+        notifier.send(combined_message)  # 推荐用 markdown 格式更美观
+        print(f"📤 第 {i // batch_size + 1} 批报告已推送。")
+
+        # 短暂休眠防止微信 Webhook 限流（通常 Webhook 也有 20条/分 的限制）
+        time.sleep(2)
 
     print("-" * 50)
     print("🏁 所有任务执行完毕。")
