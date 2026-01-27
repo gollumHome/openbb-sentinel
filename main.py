@@ -123,22 +123,42 @@ def main():
 
     print(f"\n📨 正在合并推送 {len(all_insights)} 个标的的分析报告...")
 
-    # 设定每批发送的数量（建议 3 个标的一发，防止内容过长被微信截断）
-    batch_size = 3
-    for i in range(0, len(all_insights), batch_size):
-        batch = all_insights[i: i + batch_size]
+    MAX_LENGTH = 1800  # 企业微信限制约2048字节，留点余量给标题
+    current_batch = []
+    current_length = 0
+    batch_counter = 1
 
-        # 合并文本，中间加个分割线
-        separator = "\n" + "·" * 30 + "\n"
-        combined_message = f"【{args.mode.upper()} 汇总报告 ({i // batch_size + 1})】\n"
-        combined_message += separator.join(batch)
+    separator = "\n" + "·" * 30 + "\n"
 
-        # 发送
-        notifier.send(combined_message)  # 推荐用 markdown 格式更美观
-        print(f"📤 第 {i // batch_size + 1} 批报告已推送。")
+    for insight in all_insights:
+        # 估算加入这条消息后的总长度
+        # 注意：这里简单按字符数计算，如果包含大量中文，建议设低一点（如 600-800）
+        insight_len = len(insight.encode('utf-8'))  # 计算字节长度更准确
 
-        # 短暂休眠防止微信 Webhook 限流（通常 Webhook 也有 20条/分 的限制）
-        time.sleep(2)
+        # 如果当前缓存 + 新消息 + 分隔符 超过限制，则先发送当前缓存
+        if current_length + insight_len > MAX_LENGTH and current_batch:
+            # 发送当前批次
+            msg_body = separator.join(current_batch)
+            full_msg = f"【{args.mode.upper()} 汇总 ({batch_counter})】\n{msg_body}"
+            notifier.send(full_msg)
+            print(f"📤 第 {batch_counter} 批已发送 (长度: {current_length})")
+
+            # 重置
+            current_batch = []
+            current_length = 0
+            batch_counter += 1
+            time.sleep(2)
+
+        # 加入新消息到缓存
+        current_batch.append(insight)
+        current_length += insight_len + len(separator.encode('utf-8'))
+
+    # 发送剩余的最后一批
+    if current_batch:
+        msg_body = separator.join(current_batch)
+        full_msg = f"【{args.mode.upper()} 汇总 ({batch_counter}) - 完】\n{msg_body}"
+        notifier.send(full_msg)
+        print(f"📤 最后一批已发送。")
 
     print("-" * 50)
     print("🏁 所有任务执行完毕。")
